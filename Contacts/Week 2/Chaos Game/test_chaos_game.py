@@ -8,16 +8,18 @@ r = np.arange(0,n)
 res = 300
 
 points = np.exp((2.0*np.pi*r*1j)/res)
+print(points)
+exit()
 
 start = 0.1+0.5j
 
 def compute_new_rand_location(point):
     rand_location = np.random.randint(0,n)
-    print(rand_location)
     vector = (points[rand_location])
+    print(vector)
 
     # Pick starting position
-    next_point = start + vector
+    next_point = point + vector
 
     return next_point, rand_location
 
