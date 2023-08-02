@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 N = 30
 x = 0.5
-l = 2.3
+l = 3.5
 
 
 T = np.arange(N)

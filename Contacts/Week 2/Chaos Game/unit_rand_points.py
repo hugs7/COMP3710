@@ -12,7 +12,7 @@ points = np.exp((2.0*np.pi*r*1j)/res)   # Define unit circle
 # Pick starting position
 start = np.random.randint(0,n)
 
-plt.plot(np.real(points), np.imag(points), "r-")
+plt.plot(np.real(points), np.imag(points), "r.")
 
 
 plt.show()
