@@ -1,47 +1,58 @@
 import torch
+import numpy as np
 import matplotlib.pyplot as plt
 
-# Function to generate the Julia set
-def julia_set(width, height, real_min, real_max, imag_min, imag_max, c_real, c_imag, max_iterations=100, escape_radius=2.0):
-    # Create a grid of complex numbers on the GPU
-    real = torch.linspace(real_min, real_max, width, device='cuda')
-    imag = torch.linspace(imag_min, imag_max, height, device='cuda')
-    real, imag = torch.meshgrid(real, imag)
-    c = torch.complex(real, imag)
+print("PyTorch Version: " + torch.__version__)
 
-    # Initialize the output matrix with zeros (not in the set) on the GPU
-    output = torch.zeros_like(c, dtype=torch.uint8, device='cuda')
+device = torch.device('cuda')
+print(torch.cuda.is_available())
 
-    # Convert c_real and c_imag to tensors on the GPU
-    c_real = torch.tensor(c_real, device='cuda')
-    c_imag = torch.tensor(c_imag, device='cuda')
+# setting device on GPU if available, else CPU
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print('Using device:', device)
+print()
 
-    # Iterate to determine points in the Julia set
-    z = c.clone()
-    for i in range(max_iterations):
-        z = z * z + torch.complex(c_real, c_imag)
-        in_set = (z.abs() <= escape_radius)
-        output[in_set] = i + 1
+Y, X = np.mgrid[-1.3:1.3:0.005, -2:1:0.005]
+x = torch.Tensor(X)
+y = torch.Tensor(Y)
 
-    return output
+z = torch.complex(x, y)
+zs = z
+ns = torch.zeros_like(z)
+c = (-0.5 + -0.5j)
 
-# Parameters for the Julia set
-width = 800
-height = 600
-real_min, real_max = -2.0, 2.0
-imag_min, imag_max = -1.5, 1.5
-c_real, c_imag = -0.52535, -0.52535  # Feel free to change these values to explore different Julia sets
+z = z.to(device)
+zs = zs.to(device)
+ns = ns.to(device)
 
-# Generate the Julia set on the GPU
-julia = julia_set(width, height, real_min, real_max, imag_min, imag_max, c_real, c_imag)
+for i in range(2000):
+    zs_ = zs * zs + c
+    not_div = torch.abs(zs_) < 4.0
+    ns += not_div.type(ns.dtype)
+    zs = zs_
 
-# Transfer the result back to the CPU for visualization
-julia_cpu = julia.cpu()
 
-# Display the Julia set
-plt.imshow(julia_cpu, cmap='turbo', extent=(real_min, real_max, imag_min, imag_max))
-plt.title("Julia Set")
-plt.xlabel("Real")
-plt.ylabel("Imaginary")
-plt.colorbar()
+# Additional Info when using cuda
+if device.type == 'cuda':
+    print(torch.cuda.get_device_name(0))
+    print('Memory Usage:')
+    print('Allocated:', round(torch.cuda.memory_allocated(0)/1024**3, 1), 'GB')
+    print('Cached:   ', round(torch.cuda.memory_reserved(0)/1024**3, 1), 'GB')
+
+
+fig = plt.figure(figsize=(16, 10))
+
+
+def procFrac(a):
+    a_cyclic = (6.28*a/20.0).reshape(list(a.shape) + [1])
+    img = np.concatenate([10+20*np.cos(a_cyclic), 30+50 *
+                         np.sin(a_cyclic), 155-80*np.cos(a_cyclic)], 2)
+    img[a == a.max()] = 0
+    a = img
+    a = np.uint8(np.clip(a, 0, 255))
+    return a
+
+
+plt.imshow(procFrac(ns.cpu().numpy()))
+plt.tight_layout(pad=0)
 plt.show()

@@ -12,7 +12,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('Using device:', device)
 print()
 
-Y, X = np.mgrid[-1.3:1.3:0.00005, -2:1:0.00005]
+Y, X = np.mgrid[-1.3:1.3:0.001, -2:1:0.001]
 x = torch.Tensor(X)
 y = torch.Tensor(Y)
 

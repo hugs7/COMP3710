@@ -14,8 +14,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('Using device:', device)
 print()
 
-Y, X = torch.meshgrid(torch.arange(-1.3, 1.3, 0.002),
-                      torch.arange(-2, 1, 0.002))
+Y, X = torch.meshgrid(torch.arange(-1.3, 1.3, 0.0005),
+                      torch.arange(-2, 1, 0.0005))
 x = X.to(device)
 y = Y.to(device)
 
