@@ -16,6 +16,7 @@ print()
 
 STEP = 1
 
+# Change size here. Should be a power of 3
 length = 3**8
 
 # Create x and y ranges using torch.arange
@@ -35,36 +36,32 @@ print(new_fractal)
 
 def populate_grid(grid, length):
     if length == 3:  # base case
-        # Code to populate the base case (e.g., filling specific cells)
+        # Code to populate 3x3 grid
         for row in range(3):
             for col in range(3):
                 if (row % 2 == 1 and col % 2 == 0) or (row % 2 == 0 and col % 2 == 1) or (row == 1 and col == 1):
                     grid[row, col] = 1
-                # else:
-                #     grid[row, col] = 1
 
         return grid
     else:
         # recursive case
         new_length = length // 3
+        # Split nxn grid into 9 (3x3) subgrids
         for row in range(3):
-            # print("Row", row)
             for col in range(3):
-                # print("Col", col)
-
+                # if this ninth of the grid should be filled, call recursive case
                 if (row % 2 == 1 and col % 2 == 0) or (row % 2 == 0 and col % 2 == 1) or (row == 1 and col == 1):
-
+                    # Calculate subregion of grid as sub_grid
                     sub_row = (row * length) // 3
                     sub_col = (col * length) // 3
 
                     sub_grid = grid[sub_row: sub_row +
                                     new_length, sub_col: sub_col + new_length]
+                    
+                    # Call recursion
                     populate_grid(sub_grid, new_length)
-                    # Now you have a sub-grid filled with the fractal pattern, and you can place it in the main grid
-                    # grid[row * new_length: (row + 1) * new_length, supercell *
-                    #              new_length: (supercell + 1) * new_length] = sub_grid
 
-
+# Start recursion
 populate_grid(new_fractal, length)
 
 # Calculate extent for centering the plot at 0,0
