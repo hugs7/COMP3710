@@ -24,7 +24,6 @@ r = R.to(device)
 # plt.plot(r.abs().cpu().numpy(), 'b.')
 # plt.show()
 
-
 for i in range(2000):
     x = r * x * (1 - x)
 
@@ -36,7 +35,6 @@ if device.type == 'cuda':
     print('Cached:   ', round(torch.cuda.memory_reserved(0) / 1024**3, 1), 'GB')
 
 fig = plt.figure(figsize=(16, 10))
-
 
 
 plt.plot(r.abs().cpu().numpy(),x.abs().cpu().numpy(), 'b.')

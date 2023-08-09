@@ -28,7 +28,7 @@ z = z.to(device)
 zs = zs.to(device)
 ns = ns.to(device)
 
-for i in range(2000):
+for i in range(200):
     zs_ = zs * zs + c
     not_div = torch.abs(zs_) < 4.0
     ns += not_div.to(torch.float32)

@@ -14,12 +14,12 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('Using device:', device)
 print()
 
-Y, X = torch.meshgrid(torch.arange(-1.3, 1.3, 0.005),
-                      torch.arange(-2, 1, 0.005))
+Y, X = torch.meshgrid(torch.arange(-1, 1.3, 0.001),
+                      torch.arange(-2, 1.3, 0.001))
 x = X.to(device)
 y = Y.to(device)
 
-z = torch.complex(x, y)
+z = torch.complex(x, y) * 1/2 + 0.5
 zs = z
 ns = torch.zeros_like(z)
 
@@ -27,7 +27,7 @@ z = z.to(device)
 zs = zs.to(device)
 ns = ns.to(device)
 
-for i in range(2000):
+for i in range(200):
     zs_ = zs * zs + z
     not_div = torch.abs(zs_) < 4.0
     ns += not_div.to(torch.float32)

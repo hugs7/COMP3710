@@ -1,4 +1,5 @@
 import torch
+import math
 import numpy as np
 
 print("PyTorch Version: " + torch.__version__)
@@ -12,7 +13,7 @@ x = x.to(device)
 y = torch.Tensor(Y)
 y = y.to(device)
 
-z = torch.exp(-(x**2+y**2)/200.0)
+z = torch.sin((x*np.sin((math.pi / 180) * 90) + y * np.cos((math.pi / 180) * 90)) /200.0)
 z_cpu = z.cpu().numpy()
 import matplotlib.pyplot as plt
 
