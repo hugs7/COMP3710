@@ -17,7 +17,7 @@ from sklearn.model_selection import cross_val_score
 
 # Download the faces (70 per person for good training)
 lfw_people = fetch_lfw_people(
-    min_faces_per_person=70, resize=0.4, download_if_missing=True
+    min_faces_per_person=100, resize=0.4, download_if_missing=True
 )
 
 # Extract parameters from faces
@@ -43,7 +43,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 # Dimensionality reduction
-n_components = 50
+n_components = 150
 
 # Normalise data by subtracting the mean
 mean = np.mean(X_train, axis=0)
