@@ -6,6 +6,7 @@ from typing import Any
 import torch
 import torchvision
 import torchvision.transforms as transforms
+import torchvision.transforms.functional as F
 import numpy as np
 import time
 import matplotlib.pyplot as plt
@@ -54,21 +55,79 @@ class NormaliseStatistics(torch.nn.Module):
         return self.__class__.__name__ + "()"
 
 
+# Fourier Transform
+
+
+class Fourier(torch.nn.Module):
+    """
+    Discrete Fourier Transform of image and center
+    Filter applies a filter to the coefficients, assumes center matches shape of filter
+    Zero mean sets DC offset coefficient to epsilon > 0
+    as_real_channels returns real and imaginary components as real channels
+    """
+
+    def __init__(self, centre, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.centre = centre
+        self.zero_mean = True
+
+    def __call__(self, x):
+        """
+        Args:
+                x (PIL Image or np.ndarray): Image to be transformed.
+        Returns:
+                Tensor: Fourier Transformed image.
+        """
+
+        # Channel, height, width
+        c, h, w = F.get_dimensions(x)
+
+        # Make complex signal
+        x_complex = x + 0j
+
+        # Apply fft only to image dimensions (height and width)
+        # If dim isn't specified, fft will be applied to all dimensions
+        # and you'll end up with something weird
+        Fx = torch.fft.fft2(x_complex, dim=(-2, -1))
+
+        # When doing fast fourier transform, the zeroth element, the centre of the fourier transform if actually
+        # the DC coefficient. DFT matrix has ones. Ones is basically a sum. Setting to a small epsilon
+        # is equivalent to setting it to 0
+        if self.zero_mean:
+            # Remove DC coefficient
+            Fx[..., 0, 0] = 1e-12
+
+        if self.centre:
+            # Compute fourier transform
+            Fx = torch.fft.fftshift(Fx, dim=(-2, -1))
+
+        return Fx
+
+
 # Data
 
+# torchvision transform
 # Convert each image into a tensor (from a np array)
 # Normalise with mean = 0 and variance/standard deviation = 1
-# transform = transforms.Compose(
-#     [transforms.ToTensor(), transforms.Normalize((0.0,), (1.0))]
-# )
+transform = transforms.Compose(
+    [transforms.ToTensor(), transforms.Normalize((0.0,), (1.0))]
+)
 
 # Now use custom Transform class instead
-transform = transforms.Compose(
+custom_transform = transforms.Compose(
     [transforms.ToTensor(), NormaliseStatistics(unit_variance=True)]
 )
 
+fourier_transform = transforms.Compose(
+    [
+        transforms.ToTensor(),
+        NormaliseStatistics(unit_variance=True),
+        Fourier(centre=True),
+    ]
+)
+
 trainset = torchvision.datasets.MNIST(
-    root=path + "data/mnist", train=True, download=True, transform=transform
+    root=path + "data/mnist", train=True, download=True, transform=fourier_transform
 )
 
 # Load in train set of data. Has images all with associated labels
@@ -91,7 +150,13 @@ for i, (x, y) in enumerate(train_loader):
     Fy = y.numpy()
     break  # Not going to iterate for now. We're going to plot the first one
 epoch_time = time.time() - start_time
-print(f"Took {epoch_time} seconds or {epoch_time/60} minutes to process")
+print(
+    "Took "
+    + str(epoch_time)
+    + " seconds or "
+    + str(epoch_time / 60)
+    + " minutes to process"
+)
 
 
 # Plot processed first trained image
