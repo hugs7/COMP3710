@@ -15,6 +15,10 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
 import torch
 
+# setting device on GPU if available, else CPU
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("Using device:", device)
+print()
 
 # Download the faces (70 per person for good training)
 lfw_people = fetch_lfw_people(
@@ -46,20 +50,26 @@ X_train, X_test, y_train, y_test = train_test_split(
 # Dimensionality reduction
 n_components = 150
 
-# Normalise data by subtracting the mean
-mean = np.mean(X_train, axis=0)
-X_train -= mean
-X_test -= mean
+# Convert X_train to a PyTorch tensor
+X_train_tensor = torch.tensor(X_train)
+X_test_tensor = torch.tensor(X_test)
+
+# Calculate the mean along each feature dimension
+mean = torch.mean(X_train_tensor, dim=0)
+print("Mean", mean)
+
+X_train_tensor -= mean
+X_test_tensor -= mean
 
 # Compute eigen-decomposition of X after normalising the data (subtract mean)
-U, S, V = np.linalg.svd(X_train, full_matrices=False)
+U, S, V = torch.linalg.svd(X_train_tensor, full_matrices=False)
 components = V[:n_components]
 eigenfaces = components.reshape((n_components, h, w))
 
 # Project into PCA subspace
-X_transformed = np.dot(X_train, components.T)
+X_transformed = torch.matmul(X_train_tensor, components.T)
 print(X_transformed.shape)
-X_test_transformed = np.dot(X_test, components.T)
+X_test_transformed = torch.matmul(X_test_tensor, components.T)
 print(X_test_transformed.shape)
 
 
@@ -81,7 +91,7 @@ def plot_gallery(images, titles, h, w, n_row=3, n_col=4):
 
 
 eigenface_titles = [f"eigenfaces {d}" for d in range(eigenfaces.shape[0])]
-plot_gallery(eigenfaces, eigenface_titles, h, w)
+plot_gallery(eigenfaces.cpu(), eigenface_titles, h, w)
 
 plt.show()
 
@@ -97,9 +107,9 @@ total_var = explained_variance.sum()
 # Ratio of explained to total variance
 explained_variance_ratio = explained_variance / total_var
 
-ratio_cumsum = np.cumsum(explained_variance_ratio)
+ratio_cumsum = torch.cumsum(explained_variance_ratio, dim=0)
 print(ratio_cumsum.shape)
-eigenValueCount = np.arange(n_components)
+eigenValueCount = torch.arange(n_components)
 
 plt.plot(eigenValueCount, ratio_cumsum[:n_components])
 plt.title("Compactness")
