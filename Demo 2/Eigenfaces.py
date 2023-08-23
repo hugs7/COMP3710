@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
+import torch
 
 
 # Download the faces (70 per person for good training)
@@ -23,7 +24,7 @@ lfw_people = fetch_lfw_people(
 # Extract parameters from faces
 n_samples, h, w = lfw_people.images.shape
 X = lfw_people.data
-n_featrues = X.shape[1]
+n_features = X.shape[1]
 
 # Labels
 y = lfw_people.target
@@ -32,7 +33,7 @@ n_classes = target_names.shape[0]
 
 print("Dataset size")
 print(f"samples: n = {n_samples}")
-print(f"features: n = {n_featrues}")
+print(f"features: n = {n_features}")
 print(f"classes: n = {n_classes}")
 
 # Split data into training and testing
