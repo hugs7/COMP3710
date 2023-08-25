@@ -17,7 +17,7 @@ print("Using device:", device)
 print()
 
 # Parameters
-path = "\\Contacts\\Week 4\\classify\\"
+path = "C:\\Users\\Hugo Burton\\OneDrive\\Documents\\University (2021 - 2024)\\2023 Semester 2\\COMP3710 Data\\"
 
 # ---------
 
@@ -127,7 +127,7 @@ fourier_transform = transforms.Compose(
 )
 
 trainset = torchvision.datasets.MNIST(
-    root=path + "data/mnist", train=True, download=True, transform=fourier_transform
+    root=path + "data/mnist", train=True, download=True, transform=custom_transform
 )
 
 # Load in train set of data. Has images all with associated labels

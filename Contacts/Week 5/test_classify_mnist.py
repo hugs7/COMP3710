@@ -19,7 +19,7 @@ learning_rate = 5e-3
 channels = 1
 
 # paths
-path = "/home/uqscha22/"
+path = "C:\\Users\\Hugo Burton\\OneDrive\\Documents\\University (2021 - 2024)\\2023 Semester 2\\COMP3710 Data\\"
 
 # --------------
 # Data
@@ -31,7 +31,7 @@ trainset = torchvision.datasets.MNIST(
     root=path + "data/mnist", train=True, download=True, transform=transform
 )
 train_loader = torch.utils.data.DataLoader(
-    trainset, batch_size=128, shuffle=True
+    trainset, batch_size=4096, shuffle=True
 )  # num_workers=6
 total_step = len(train_loader)
 
@@ -133,7 +133,10 @@ print(
 )
 print(model)
 
+# Loss function (criterion) measures how close the model is to the true value (during training)
 criterion = nn.CrossEntropyLoss()
+
+# Optimise the model with a learning rate alpha as 5e-3. Like a time step to an optimisation problem
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
 
 # --------------
