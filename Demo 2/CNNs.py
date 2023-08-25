@@ -55,7 +55,7 @@ transform = transforms.Compose(
 
 # Training data
 trainset = torchvision.datasets.CIFAR10(
-    root=path + "data/cifar10", train=True, download=True, transform=transform
+    root=path + "data/cifar10", train=True, download=False, transform=transform
 )
 train_loader = torch.utils.data.DataLoader(
     trainset, batch_size=512, shuffle=True
@@ -65,7 +65,7 @@ total_step = len(train_loader)
 
 # Testing data
 testset = torchvision.datasets.CIFAR10(
-    root=path + "data/cifar10", train=False, download=True, transform=transform
+    root=path + "data/cifar10", train=False, download=False, transform=transform
 )
 test_loader = torch.utils.data.DataLoader(
     testset, batch_size=100, shuffle=False
@@ -82,7 +82,7 @@ print("Model parameters:", sum([p.nelement() for p in model.parameters()]))
 print(model)
 
 # Loss function (criterion) measures how close the model is to the true value (during training)
-criteroin = nn.CrossEntropyLoss()
+criterion = nn.CrossEntropyLoss()
 
 # Optimise the model with a learning rate alpha as 5e-3. Like a time step to an optimisation problem
 # SGD is stochastic gradient descent
@@ -90,6 +90,7 @@ optimiser = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.8)
 
 # Train Model
 
+# Place module in training mode
 model.train()
 print("> Training")
 start_train = time.time()
@@ -100,7 +101,7 @@ for epoch in range(num_epochs):
 
         # Forward pass
         outputs = model(images)
-        loss = criteroin(outputs, labels)
+        loss = criterion(outputs, labels)
 
         # Optimise
         optimiser.zero_grad()
@@ -116,6 +117,32 @@ for epoch in range(num_epochs):
             )
 
 end_train = time.time()
-elapsed = end_train - start_train
+elapsed_training = end_train - start_train
 
-print("Trainig took " + str(elapsed) + " seconds.")
+print("Training took " + str(elapsed_training) + " seconds.")
+
+
+# Test Model
+print("> Testing")
+start_test = time.time()
+# Place module in evaluation mode
+model.eval()
+with torch.no_grad():
+    correct = 0
+    total = 0
+    # Iterate over the images in each batch provided by the test loader
+    for images, labels in test_loader:
+        images = images.to(device)
+        labels = labels.to(device)
+
+        outputs = model(images)
+
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+
+    print("Test Accuracy: {} %".format(100 * correct / total))
+
+end_test = time.time()
+elapsed_testing = end_test - start_test
+print("Testing took " + str(elapsed_testing) + " seconds.")

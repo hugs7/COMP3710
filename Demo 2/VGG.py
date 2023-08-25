@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 
 # Model
 # Visual Graphics Group VGG with x layers
@@ -62,7 +63,13 @@ class VGG(nn.Module):
         self.in_channels = in_channels
         self.num_classes = num_classes
         self.features = self._make_layers(cfg[vgg_name], self.in_channels)
-        self.classifier = nn.Linear(512, self.num_classes)
+
+        # Calculate the correct input size for the linear classifier
+        dummy_input = torch.zeros(1, in_channels, 32, 32)  # Adjust input size as needed
+        dummy_output = self.features(dummy_input)
+        num_features = dummy_output.size(1)
+
+        self.classifier = nn.Linear(num_features, self.num_classes)
 
     def forward(self, x):  # forward pass of the model
         out = self.features(x)
