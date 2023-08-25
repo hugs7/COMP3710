@@ -6,51 +6,13 @@ Hugo Burton - s4698512
 """
 
 from sklearn.datasets import fetch_lfw_people
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report
+import torch
+import torch.nn as nn
+import torchvision
+import torchvision.transforms as transforms
+import time
 import numpy as np
-import matplotlib.pyplot as plt
-
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import cross_val_score
-
-
-# Download the faces (70 per person for good training)
-lfw_people = fetch_lfw_people(
-    min_faces_per_person=100, resize=0.4, download_if_missing=True
-)
-
-# Extract parameters from faces
-n_samples, h, w = lfw_people.images.shape
-X = lfw_people.data
-n_featrues = X.shape[1]
-
-# Labels
-y = lfw_people.target
-target_names = lfw_people.target_names
-n_classes = target_names.shape[0]
-
-print("Dataset size")
-print(f"samples: n = {n_samples}")
-print(f"features: n = {n_featrues}")
-print(f"classes: n = {n_classes}")
-
-# Split data into training and testing
-# Testing set also should have a validation set
-# This is so we can test / validate the model's performance
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.25, random_state=42
-)
-
-# Dimensionality reduction
-n_components = 150
-
-# Normalise data
-X_train /= 255.0
-X_test /= 255.0
-X_train = X_train[:, :, :, np.newaxis]
-X_test = X_test[:, :, :, np.newaxis]
-print("X_train shape", X_train.shape)
+import VGG
 
 """
 Construct a Fast CIFAR10 dataset classification network using one of the TF
@@ -69,3 +31,91 @@ proximately 360 seconds on a NVIDIA V100 GPU on the cluster. Can you achieve a t
 alent or faster? See appendix B for more resources on the DAWNBench challenge. (5 Marks)
 5.
 """
+
+# Device configuration
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if not torch.cuda.is_available():
+    print("Warning CUDA not Found. Using CPU")
+
+
+# Hyper-parameters
+num_epochs = 5
+learning_rate = 5e-3
+channels = 3
+
+# paths
+path = "C:\\Users\\Hugo Burton\\OneDrive\\Documents\\University (2021 - 2024)\\2023 Semester 2\\COMP3710 Data\\"
+
+
+# --------------
+# Data
+transform = transforms.Compose(
+    [transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))]
+)
+
+# Training data
+trainset = torchvision.datasets.CIFAR10(
+    root=path + "data/cifar10", train=True, download=True, transform=transform
+)
+train_loader = torch.utils.data.DataLoader(
+    trainset, batch_size=512, shuffle=True
+)  # num_workers=6
+
+total_step = len(train_loader)
+
+# Testing data
+testset = torchvision.datasets.CIFAR10(
+    root=path + "data/cifar10", train=False, download=True, transform=transform
+)
+test_loader = torch.utils.data.DataLoader(
+    testset, batch_size=100, shuffle=False
+)  # num_workers=6
+
+
+# Model
+
+model = VGG.VGG("VGG11_2", channels, num_classes=10)
+model = model.to(device)
+
+# model info
+print("Model parameters:", sum([p.nelement() for p in model.parameters()]))
+print(model)
+
+# Loss function (criterion) measures how close the model is to the true value (during training)
+criteroin = nn.CrossEntropyLoss()
+
+# Optimise the model with a learning rate alpha as 5e-3. Like a time step to an optimisation problem
+# SGD is stochastic gradient descent
+optimiser = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.8)
+
+# Train Model
+
+model.train()
+print("> Training")
+start_train = time.time()
+for epoch in range(num_epochs):
+    for i, (images, labels) in enumerate(train_loader):
+        images = images.to(device)
+        labels = labels.to(device)
+
+        # Forward pass
+        outputs = model(images)
+        loss = criteroin(outputs, labels)
+
+        # Optimise
+        optimiser.zero_grad()
+        loss.backward()
+        optimiser.step()
+
+        # Print info about ever 100 epochs
+        if (i + 1) % 100 == 0:
+            print(
+                "Epoch [{}/{}], Step [{}/{}] Loss: {:.5f}".format(
+                    epoch + 1, num_epochs, i + 1, total_step, loss.item()
+                )
+            )
+
+end_train = time.time()
+elapsed = end_train - start_train
+
+print("Trainig took " + str(elapsed) + " seconds.")
