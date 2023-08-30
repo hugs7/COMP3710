@@ -5,14 +5,17 @@ Hugo Burton - s4698512
 23/08/2023
 """
 
-from sklearn.datasets import fetch_lfw_people
+# Machine Learning
 import torch
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
 import time
-import numpy as np
 import VGG
+
+# Plotting
+import matplotlib.pyplot as plt
+import numpy as np
 
 """
 Construct a Fast CIFAR10 dataset classification network using one of the TF
@@ -50,7 +53,10 @@ path = "C:\\Users\\Hugo Burton\\OneDrive\\Documents\\University (2021 - 2024)\\2
 # --------------
 # Data
 transform = transforms.Compose(
-    [transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))]
+    [
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+    ]
 )
 
 # Training data
@@ -58,7 +64,7 @@ trainset = torchvision.datasets.CIFAR10(
     root=path + "data/cifar10", train=True, download=False, transform=transform
 )
 train_loader = torch.utils.data.DataLoader(
-    trainset, batch_size=128, shuffle=True
+    trainset, batch_size=256, shuffle=True
 )  # num_workers=6
 
 total_step = len(train_loader)
@@ -109,7 +115,7 @@ for epoch in range(num_epochs):
         optimiser.step()
 
         # Print info about ever 100 epochs
-        if (i + 1) % 100 == 0:
+        if (i + 1) % 40 == 0:
             print(
                 "Epoch [{}/{}], Step [{}/{}] Loss: {:.5f}".format(
                     epoch + 1, num_epochs, i + 1, total_step, loss.item()
@@ -127,6 +133,9 @@ print("> Testing")
 start_test = time.time()
 # Place module in evaluation mode
 model.eval()
+true_labels_all = []
+predicted_all = []
+images_all = []
 with torch.no_grad():
     correct = 0
     total = 0
@@ -135,9 +144,17 @@ with torch.no_grad():
         images = images.to(device)
         labels = labels.to(device)
 
+        # Store images in an array so I can access them later
+        images_all.append(images)
+        true_labels_all.append(labels)
+
         outputs = model(images)
 
         _, predicted = torch.max(outputs.data, 1)
+
+        # Store predicted labels in an array so I can access them later
+        predicted_all.append(predicted)
+
         total += labels.size(0)
         correct += (predicted == labels).sum().item()
 
@@ -146,3 +163,56 @@ with torch.no_grad():
 end_test = time.time()
 elapsed_testing = end_test - start_test
 print("Testing took " + str(elapsed_testing) + " seconds.")
+
+
+# Plot results
+# Choose random testing set to print
+import random
+
+rand = random.randint(0, 39)  # Can't include 40 as it's shorter
+print("Predicted Labels: ", predicted_all[rand])
+# Convert labels into a number
+predicted_labels = [p.item() for p in predicted_all[rand]]
+# Get images from same
+plot_images = images_all[rand]
+# Get true labels
+true_labels = [p.item() for p in true_labels_all[rand]]
+
+# Define class labels for CIFAR-10 dataset
+classes = (
+    "plane",
+    "car",
+    "bird",
+    "cat",
+    "deer",
+    "dog",
+    "frog",
+    "horse",
+    "ship",
+    "truck",
+)
+
+# Create a 15x8 grid of subplots
+fig, axes = plt.subplots(6, 20, figsize=(25, 25))
+
+# Flatten the axes array for easy indexing
+axes = axes.ravel()
+
+# Loop through the images and display them in the subplots
+for i in range(20 * 6):
+    ax = axes[i]
+    ax.axis("off")  # Turn off axis
+    if predicted_labels[i] == true_labels[i]:
+        colour = "black"
+    else:
+        colour = "red"
+    ax.set_title(
+        classes[predicted_labels[i]] + " (" + classes[true_labels[i]] + ")",
+        color=colour,
+    )  # Set title color to red
+    ax.imshow(
+        np.transpose(plot_images[i].cpu().numpy(), (1, 2, 0)) * 0.5 + 0.5
+    )  # Unnormalize and display image
+
+plt.tight_layout()
+plt.show()

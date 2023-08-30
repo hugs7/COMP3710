@@ -162,7 +162,7 @@ print(
 # Plot processed first trained image
 plt.figure(figsize=(10, 10))
 
-plot_size = 6  # 4x4 plot of all the data
+plot_size = 6  # 6x6 plot of all the data
 for i in range(plot_size**2):
     # define subplot
     plt.subplot(plot_size, plot_size, 1 + i)
