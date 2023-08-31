@@ -42,8 +42,9 @@ if not torch.cuda.is_available():
 
 
 # Hyper-parameters
-num_epochs = 2
-learning_rate = 5e-3
+num_epochs = 35
+learning_rate = 0.1
+num_classes = 10
 channels = 3
 
 # paths
@@ -52,35 +53,48 @@ path = "C:\\Users\\Hugo Burton\\OneDrive\\Documents\\University (2021 - 2024)\\2
 
 # --------------
 # Data
-transform = transforms.Compose(
+transform_training = transforms.Compose(
     [
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+        transforms.Normalize(
+            mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010]
+        ),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomCrop(32, padding=4, padding_mode="reflect"),
+    ]
+)
+
+transform_testing = transforms.Compose(
+    [
+        transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010]
+        ),
     ]
 )
 
 # Training data
 trainset = torchvision.datasets.CIFAR10(
-    root=path + "data/cifar10", train=True, download=False, transform=transform
+    root=path + "data/cifar10", train=True, download=False, transform=transform_training
 )
 train_loader = torch.utils.data.DataLoader(
-    trainset, batch_size=256, shuffle=True
+    trainset, batch_size=128, shuffle=True
 )  # num_workers=6
 
 total_step = len(train_loader)
 
 # Testing data
 testset = torchvision.datasets.CIFAR10(
-    root=path + "data/cifar10", train=False, download=False, transform=transform
+    root=path + "data/cifar10", train=False, download=False, transform=transform_testing
 )
 test_loader = torch.utils.data.DataLoader(
-    testset, batch_size=120, shuffle=False
+    testset, batch_size=128, shuffle=False
 )  # num_workers=6
 
 
 # Model
 
-model = VGG.VGG("VGG11_2", channels, num_classes=10)
+model = VGG.VGG("VGG11_2", channels, num_classes=num_classes)
 model = model.to(device)
 
 # model info
@@ -92,7 +106,16 @@ criterion = nn.CrossEntropyLoss()
 
 # Optimise the model with a learning rate alpha as 5e-3. Like a time step to an optimisation problem
 # SGD is stochastic gradient descent
-optimiser = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.8)
+optimiser = torch.optim.SGD(
+    model.parameters(), lr=learning_rate, momentum=0.8, weight_decay=5e-4
+)
+
+# Learning rate schedule (changes over time)
+total_step = len(train_loader)
+scheduler = torch.optim.lr_scheduler.OneCycleLR(
+    optimiser,
+    max_lr=learning_rate,
+)
 
 # Train Model
 
@@ -115,12 +138,14 @@ for epoch in range(num_epochs):
         optimiser.step()
 
         # Print info about ever 100 epochs
-        if (i + 1) % 40 == 0:
+        if (i + 1) % 100 == 0:
             print(
                 "Epoch [{}/{}], Step [{}/{}] Loss: {:.5f}".format(
                     epoch + 1, num_epochs, i + 1, total_step, loss.item()
                 )
             )
+
+        scheduler.step()
 
 end_train = time.time()
 elapsed_training = end_train - start_train
