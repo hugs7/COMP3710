@@ -12,7 +12,6 @@ import torchvision
 import torchvision.transforms as transforms
 import torch.nn.functional as F
 import time
-import VGG
 
 import BasicBlock
 
