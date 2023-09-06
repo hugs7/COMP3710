@@ -16,6 +16,9 @@ import VGG
 
 import BasicBlock
 
+from torch.cuda.amp import autocast
+
+
 # Plotting
 import matplotlib.pyplot as plt
 import numpy as np
@@ -52,7 +55,6 @@ channels = 3
 
 # paths
 path = "C:\\Users\\Hugo Burton\\OneDrive\\Documents\\University (2021 - 2024)\\2023 Semester 2\\COMP3710 Data\\"
-
 
 # --------------
 # Data
@@ -114,7 +116,7 @@ criterion = nn.CrossEntropyLoss()
 # Optimise the model with a learning rate alpha as 5e-3. Like a time step to an optimisation problem
 # SGD is stochastic gradient descent
 optimiser = torch.optim.SGD(
-    model.parameters(), lr=learning_rate, momentum=0.8, weight_decay=5e-4
+    model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=1e-4
 )
 
 # Learning rate schedule (changes over time)
@@ -138,9 +140,13 @@ for epoch in range(num_epochs):
         images = images.to(device)
         labels = labels.to(device)
 
-        # Forward pass
-        outputs = model(images)
-        loss = criterion(outputs, labels)
+        # Zero the gradients
+        optimiser.zero_grad()
+
+        with autocast():
+            # Forward pass
+            outputs = model(images)
+            loss = criterion(outputs, labels)
 
         # Optimise
         optimiser.zero_grad()
@@ -172,28 +178,29 @@ true_labels_all = []
 predicted_all = []
 images_all = []
 with torch.no_grad():
-    correct = 0
-    total = 0
-    # Iterate over the images in each batch provided by the test loader
-    for images, labels in test_loader:
-        images = images.to(device)
-        labels = labels.to(device)
+    with autocast():
+        correct = 0
+        total = 0
+        # Iterate over the images in each batch provided by the test loader
+        for images, labels in test_loader:
+            images = images.to(device)
+            labels = labels.to(device)
 
-        # Store images in an array so I can access them later
-        images_all.append(images)
-        true_labels_all.append(labels)
+            # Store images in an array so I can access them later
+            images_all.append(images)
+            true_labels_all.append(labels)
 
-        outputs = model(images)
+            outputs = model(images)
 
-        _, predicted = torch.max(outputs.data, 1)
+            _, predicted = torch.max(outputs.data, 1)
 
-        # Store predicted labels in an array so I can access them later
-        predicted_all.append(predicted)
+            # Store predicted labels in an array so I can access them later
+            predicted_all.append(predicted)
 
-        total += labels.size(0)
-        correct += (predicted == labels).sum().item()
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
 
-    print("Test Accuracy: {} %".format(100 * correct / total))
+        print("Test Accuracy: {} %".format(100 * correct / total))
 
 end_test = time.time()
 elapsed_testing = end_test - start_test
@@ -233,7 +240,13 @@ fig, axes = plt.subplots(6, 20, figsize=(25, 25))
 # Flatten the axes array for easy indexing
 axes = axes.ravel()
 
-# Loop through the images and display them in the subplots
+# Assuming img is your normalized image
+mean = [0.4914, 0.4822, 0.4465]
+std = [0.2023, 0.1994, 0.2010]
+
+
+# Check this normalisation works.
+
 for i in range(20 * 6):
     ax = axes[i]
     ax.axis("off")  # Turn off axis
@@ -245,9 +258,30 @@ for i in range(20 * 6):
         classes[predicted_labels[i]] + " (" + classes[true_labels[i]] + ")",
         color=colour,
     )  # Set title color to red
-    ax.imshow(
-        np.transpose(plot_images[i].cpu().numpy(), (1, 2, 0)) * 0.5 + 0.5
-    )  # Unnormalize and display image
+
+    # Apply the reverse normalization here
+    img = np.transpose(plot_images[i].cpu().numpy(), (1, 2, 0))
+    for j in range(3):  # Iterate over the channels (R, G, B)
+        img[:, :, j] = img[:, :, j] * std[j] + mean[j]
+    img = np.clip(img, 0, 1)
+    ax.imshow(img)
+
+
+# # Loop through the images and display them in the subplots
+# for i in range(20 * 6):
+#     ax = axes[i]
+#     ax.axis("off")  # Turn off axis
+#     if predicted_labels[i] == true_labels[i]:
+#         colour = "black"
+#     else:
+#         colour = "red"
+#     ax.set_title(
+#         classes[predicted_labels[i]] + " (" + classes[true_labels[i]] + ")",
+#         color=colour,
+#     )  # Set title color to red
+#     ax.imshow(
+#         np.transpose(plot_images[i].cpu().numpy(), (1, 2, 0)) * 0.5 + 0.5
+#     )  # Unnormalize and display image
 
 plt.tight_layout()
 plt.show()
