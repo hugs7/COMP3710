@@ -10,8 +10,11 @@ import torch
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
+import torch.nn.functional as F
 import time
 import VGG
+
+import BasicBlock
 
 # Plotting
 import matplotlib.pyplot as plt
@@ -53,6 +56,10 @@ path = "C:\\Users\\Hugo Burton\\OneDrive\\Documents\\University (2021 - 2024)\\2
 
 # --------------
 # Data
+
+# Define transforms for the training set and testing set separately
+# Add "additional data" to the training set by random transformations
+# both crop and horizontal flip.
 transform_training = transforms.Compose(
     [
         transforms.ToTensor(),
@@ -94,12 +101,12 @@ test_loader = torch.utils.data.DataLoader(
 
 # Model
 
-model = VGG.VGG("VGG11_2", channels, num_classes=num_classes)
+model = BasicBlock.ResNet18()
 model = model.to(device)
 
 # model info
 print("Model parameters:", sum([p.nelement() for p in model.parameters()]))
-print(model)
+# print(model)
 
 # Loss function (criterion) measures how close the model is to the true value (during training)
 criterion = nn.CrossEntropyLoss()
@@ -115,6 +122,9 @@ total_step = len(train_loader)
 scheduler = torch.optim.lr_scheduler.OneCycleLR(
     optimiser,
     max_lr=learning_rate,
+    total_steps=total_step,
+    epochs=num_epochs,
+    steps_per_epoch=len(train_loader),
 )
 
 # Train Model
@@ -145,7 +155,7 @@ for epoch in range(num_epochs):
                 )
             )
 
-        scheduler.step()
+    scheduler.step()
 
 end_train = time.time()
 elapsed_training = end_train - start_train
