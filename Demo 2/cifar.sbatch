@@ -1,3 +1,5 @@
+#!/bin/bash
+
 #sbatch --time=3:00:00 #3 hours
 
 # Send email when done
