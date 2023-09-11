@@ -1,6 +1,17 @@
 import torch
 import torch.nn as nn
 
+import torch.optim as optim
+import torchvision
+import torchvision.datasets as datasets
+import torchvision.transforms as transforms
+
+from torch.utils.data import DataLoader
+
+# from torch.utils.tensorboard import SummaryWriter
+import matplotlib.pyplot as plt
+import os
+import time
 
 batch_size = 128
 
@@ -119,4 +130,179 @@ def test():
 
 test()
 
+
+# Hyperparameters
+
+# Device configuration
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if not torch.cuda.is_available():
+    print("Warning CUDA not Found. Using CPU")
+
+
+LEARNING_RATE = 2e-4
+
+BATCH_SIZE = 128
+IMAGE_SIZE = 64
+CHANNELS_IMG = 3  # First with mnist. Change to 3 later on for faces
+Z_DIM = 100
+NUM_EPOCHS = 50
+FEATURES_DISC = 64
+FEATURES_GEN = 64
+
+# Storing losses for plotting
+disc_losses = []
+gen_losses = []
+
+
+# Transforms
+
+transforms = transforms.Compose(
+    [
+        transforms.CenterCrop(
+            178
+        ),  # Crop the central 178x178 pixels (CelebA image size)
+        transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            [0.5 for _ in range(CHANNELS_IMG)], [0.5 for _ in range(CHANNELS_IMG)]
+        ),
+    ]
+)
+
+# path = "C:\\Users\\Hugo Burton\\OneDrive\\Documents\\University (2021 - 2024)\\2023 Semester 2\\COMP3710 Data\\"
+path = "D:\\Hugo Burton\Documents\\University (2021 - 2024)\\2023 Semester 2\COMP3710 Data\\"
+
+# Output folder for saving images
+# Define the folder path for saving generated images
+output_folder = "D:\\Hugo Burton\Documents\\University (2021 - 2024)\\2023 Semester 2\COMP3710 Data\\generated_images"
+os.makedirs(output_folder, exist_ok=True)
+
+# Training data
+dataset = torchvision.datasets.CelebA(
+    root=path + "data/celeba",
+    split="all",  # Use the 'all' split for both training and testing
+    transform=transforms,
+    download=False,  # Set to True if you haven't downloaded the dataset yet
+)
+
+# data loader
+loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
+
+# Generator
+gen = Generator(Z_DIM, CHANNELS_IMG, FEATURES_GEN).to(device)
+# Discriminator
+disc = Discriminator(CHANNELS_IMG, FEATURES_DISC).to(device)
+
+# Iniitialise weights
+init_weights(gen)
+init_weights(disc)
+
+# Optimiser
+opt_gen = optim.Adam(gen.parameters(), lr=LEARNING_RATE, betas=(0.5, 0.999))
+opt_disc = optim.Adam(disc.parameters(), lr=LEARNING_RATE, betas=(0.5, 0.999))
+
+# Loss
+criterion = nn.BCELoss()
+
+# Fixed noise
+fixed_noise = torch.randn(32, Z_DIM, 1, 1).to(device)
+# writer_real = SummaryWriter(path + "logs\\real")
+# writer_fake = SummaryWriter(path + "logs\\fake")
+
+step = 0
+
 # Training
+gen.train()
+disc.train()
+
+
+for epoch in range(NUM_EPOCHS):
+    start_time = time.time()  # Record the start time of the epoch
+    for batch_index, (real, _) in enumerate(loader):
+        real = real.to(device)
+        noise = torch.randn((BATCH_SIZE, Z_DIM, 1, 1)).to(device)
+
+        # Generate fakes
+        fake = gen(noise)
+
+        # Train discriminator. Maximise log(D(x)) + log(1 - D(G(z)))
+
+        disc_real = disc(real).reshape(-1)  # N
+        loss_disc_real = criterion(disc_real, torch.ones_like(disc_real))
+
+        disc_fake = disc(fake).reshape(-1)  # N
+        loss_disc_fake = criterion(disc_fake, torch.zeros_like(disc_fake))
+        loss_disc = (loss_disc_real + loss_disc_fake) / 2
+        disc.zero_grad()
+        loss_disc.backward(retain_graph=True)
+        opt_disc.step()
+
+        # Train generator min log(1 - D(G(z))) <--> max log(D(G(z)))
+        output = disc(fake).reshape(-1)
+        loss_gen = criterion(output, torch.ones_like(output))
+        gen.zero_grad()
+        loss_gen.backward()
+        opt_gen.step()
+
+        if batch_index % 100 == 0:
+            print(batch_index, end=", ")
+
+        if batch_index % 500 == 0:
+            print()
+            with torch.no_grad():
+                fake = gen(fixed_noise)
+
+                # Save generated images to the output folder
+                for i, generated_image in enumerate(fake):
+                    image_filename = os.path.join(
+                        output_folder,
+                        f"epoch_{epoch}_batch_{batch_index}_image_{i}.png",
+                    )
+                    torchvision.utils.save_image(
+                        generated_image, image_filename, normalize=True
+                    )
+
+                # fake = gen(fixed_noise)
+
+                # # Display generated images
+                # plt.figure(figsize=(8, 8))
+                # plt.imshow(
+                #     torchvision.utils.make_grid(fake[:32], normalize=True)
+                #     .cpu()
+                #     .numpy()
+                #     .transpose(1, 2, 0)
+                # )
+                # plt.axis("off")
+                # plt.show()
+
+                # Display training progress
+                print(
+                    f"Epoch [{epoch}/{NUM_EPOCHS}] Batch [{batch_index}/{len(loader)}] "
+                    f"Loss D: {loss_disc:.4f}, Loss G: {loss_gen:.4f}"
+                )
+
+    end_time = time.time()  # Record the end time of the epoch
+    epoch_time = end_time - start_time  # Calculate the elapsed time for the epoch
+    print(f"Epoch [{epoch}/{NUM_EPOCHS}] Time: {epoch_time:.2f} seconds")
+
+
+# Plot the losses
+plt.figure(figsize=(10, 5))
+plt.plot(disc_losses, label="Discriminator Loss")
+plt.plot(gen_losses, label="Generator Loss")
+plt.xlabel("Iterations")
+plt.ylabel("Loss")
+plt.legend()
+plt.show()
+
+with torch.no_grad():
+    fake = gen(fixed_noise)
+    plt.figure(figsize=(8, 8))
+    plt.imshow(
+        torchvision.utils.make_grid(fake[:32], normalize=True)
+        .cpu()
+        .numpy()
+        .transpose(1, 2, 0)
+    )
+    plt.axis("off")
+    plt.show()
