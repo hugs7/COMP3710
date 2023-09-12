@@ -47,10 +47,11 @@ if not torch.cuda.is_available():
 
 
 # Hyper-parameters
-num_epochs = 35
+num_epochs = 50
 learning_rate = 0.1
 num_classes = 10
 channels = 3
+c = 3
 
 # paths
 path = "C:\\Users\\Hugo Burton\\OneDrive\\Documents\\University (2021 - 2024)\\2023 Semester 2\\COMP3710 Data\\"
@@ -86,7 +87,7 @@ trainset = torchvision.datasets.CIFAR10(
     root=path + "data/cifar10", train=True, download=False, transform=transform_training
 )
 train_loader = torch.utils.data.DataLoader(
-    trainset, batch_size=128, shuffle=True
+    trainset, batch_size=256, shuffle=True
 )  # num_workers=6
 
 total_step = len(train_loader)
@@ -178,7 +179,7 @@ predicted_all = []
 images_all = []
 with torch.no_grad():
     with autocast():
-        correct = 0
+        correct = c
         total = 0
         # Iterate over the images in each batch provided by the test loader
         for images, labels in test_loader:
