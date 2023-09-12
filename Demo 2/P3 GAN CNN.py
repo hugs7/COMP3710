@@ -171,11 +171,13 @@ transforms = transforms.Compose(
 )
 
 # path = "C:\\Users\\Hugo Burton\\OneDrive\\Documents\\University (2021 - 2024)\\2023 Semester 2\\COMP3710 Data\\"
-path = "R:\\COMP3710 Data\\"
+# path = "R:\\COMP3710 Data\\"
+path = "./celebA_data/"
 
 # Output folder for saving images
 # Define the folder path for saving generated images
-output_folder = "R:\\COMP3710 Data\\generated_images"
+# output_folder = "R:\\COMP3710 Data\\generated_images"
+output_folder = "./generated_images"
 os.makedirs(output_folder, exist_ok=True)
 
 # Training data
@@ -183,7 +185,7 @@ dataset = torchvision.datasets.CelebA(
     root=path + "data/celeba",
     split="all",  # Use the 'all' split for both training and testing
     transform=transforms,
-    download=False,  # Set to True if you haven't downloaded the dataset yet
+    download=True,  # Set to True if you haven't downloaded the dataset yet
 )
 
 # data loader
@@ -220,31 +222,59 @@ disc.train()
 for epoch in range(NUM_EPOCHS):
     start_time = time.time()  # Record the start time of the epoch
     for batch_index, (real, _) in enumerate(loader):
+        # Move real images to the GPU
         real = real.to(device)
+        # generate random noise of shape 128 x 3 x 1 x 1 and move to GPU
         noise = torch.randn((BATCH_SIZE, Z_DIM, 1, 1)).to(device)
 
-        # Generate fakes
+        # Pass the noise through the generator to make fakes
         fake = gen(noise)
 
         # Train discriminator. Maximise log(D(x)) + log(1 - D(G(z)))
+        # This distinguishes between real and fake images. Maximise log likelihood
+        # of correctly identifying real images and correctly identifying fake images
 
+        # Pass the real images through the discriminator and reshape output to 1D tensor
         disc_real = disc(real).reshape(-1)  # N
+
+        # Compute the loss for classifying real images
         loss_disc_real = criterion(disc_real, torch.ones_like(disc_real))
 
+        # Pass the fake images through the discriminator and reshape output to 1D tensor
         disc_fake = disc(fake).reshape(-1)  # N
+
+        # Compute the loss for classifying fake images
         loss_disc_fake = criterion(disc_fake, torch.zeros_like(disc_fake))
+
+        # Average the loss values
         loss_disc = (loss_disc_real + loss_disc_fake) / 2
+
+        # Reset discriminator gradients
         disc.zero_grad()
+
+        # Perform backpropagation
+        # Computes the gradients of the disciminator loss
         loss_disc.backward(retain_graph=True)
+
+        # Step
         opt_disc.step()
 
         # Train generator min log(1 - D(G(z))) <--> max log(D(G(z)))
         output = disc(fake).reshape(-1)
+
+        # Compute generator loss
         loss_gen = criterion(output, torch.ones_like(output))
+
+        # Reset generator gradients
         gen.zero_grad()
+
+        # Perform backpropagation
         loss_gen.backward()
+
+        # Step
         opt_gen.step()
 
+        # Output to console
         if batch_index % 100 == 0:
             print(batch_index, end=", ")
 
@@ -263,6 +293,7 @@ for epoch in range(NUM_EPOCHS):
                         generated_image, image_filename, normalize=True
                     )
 
+                # Enable if you want to display images each 500 steps not just save them
                 # fake = gen(fixed_noise)
 
                 # # Display generated images

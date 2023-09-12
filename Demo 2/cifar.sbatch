@@ -1,16 +1,20 @@
 #!/bin/bash
-
-#sbatch --time=3:00:00 #3 hours
+#SBATCH --job-name=HugoGAN
+#SBATCH --partition=gpu
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=1
 
 # Send email when done
 #sbatch --mail-user=burto732@gmail.com
 
 # output filter
-#sbatch --output=cifar_resnet_1.out
+#sbatch --output=GANHugo.out
 
 
 #conda init
-source /home/student/${User}/.bashrc
+# source /home/student/${User}/.bashrc
 
 # load modules
 #JAX CUDA 11.1 Setup
@@ -26,4 +30,4 @@ cd /home/student/${USER}/Dev/
 python --version
 
 # run script
-python test_resnet_cifar.py
+python "P3 GAN CNN.py"
