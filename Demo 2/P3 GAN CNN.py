@@ -60,6 +60,7 @@ class Discriminator(nn.Module):
 class Generator(nn.Module):
     def __init__(self, z_dim, img_channels, features_g):
         super(Generator, self).__init__()
+
         self.gen = nn.Sequential(
             # Inpuit N x z_dim x 1 x 1
             self._block(z_dim, features_g * 16, 4, 2, 0),
@@ -170,11 +171,11 @@ transforms = transforms.Compose(
 )
 
 # path = "C:\\Users\\Hugo Burton\\OneDrive\\Documents\\University (2021 - 2024)\\2023 Semester 2\\COMP3710 Data\\"
-path = "D:\\Hugo Burton\Documents\\University (2021 - 2024)\\2023 Semester 2\COMP3710 Data\\"
+path = "R:\\COMP3710 Data\\"
 
 # Output folder for saving images
 # Define the folder path for saving generated images
-output_folder = "D:\\Hugo Burton\Documents\\University (2021 - 2024)\\2023 Semester 2\COMP3710 Data\\generated_images"
+output_folder = "R:\\COMP3710 Data\\generated_images"
 os.makedirs(output_folder, exist_ok=True)
 
 # Training data
