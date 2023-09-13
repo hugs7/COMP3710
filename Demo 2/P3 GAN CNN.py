@@ -144,7 +144,7 @@ LEARNING_RATE = 2e-4
 
 BATCH_SIZE = 128
 IMAGE_SIZE = 64
-CHANNELS_IMG = 3  # First with mnist. Change to 3 later on for faces
+CHANNELS_IMG = 3
 Z_DIM = 100
 NUM_EPOCHS = 50
 FEATURES_DISC = 64
@@ -201,10 +201,14 @@ init_weights(gen)
 init_weights(disc)
 
 # Optimiser
+# Adjusts learning rate on it's own
 opt_gen = optim.Adam(gen.parameters(), lr=LEARNING_RATE, betas=(0.5, 0.999))
 opt_disc = optim.Adam(disc.parameters(), lr=LEARNING_RATE, betas=(0.5, 0.999))
 
 # Loss
+# Used for disc and gen
+# binary cross entropy loss
+# determines fake vs real loss
 criterion = nn.BCELoss()
 
 # Fixed noise
